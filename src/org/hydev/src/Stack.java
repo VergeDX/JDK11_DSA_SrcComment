@@ -68,6 +68,7 @@ class Stack<E> extends Vector<E> {
      * @see java.util.Vector#addElement
      */
     public E push(E item) {
+        // [V] push() method is not synchronized, but Vector#addElement method is.
         addElement(item);
 
         return item;
@@ -85,6 +86,7 @@ class Stack<E> extends Vector<E> {
         E obj;
         int len = size();
 
+        // [?] Why not "E obj = peek();"? Any magic init?
         obj = peek();
         removeElementAt(len - 1);
 
@@ -131,10 +133,12 @@ class Stack<E> extends Vector<E> {
      * the object is located; the return value {@code -1}
      * indicates that the object is not on the stack.
      */
+    // [?] Why this method is not generic...?
     public synchronized int search(Object o) {
         int i = lastIndexOf(o);
 
         if (i >= 0) {
+            // [V] Stack is not like Array, result 1 means the top element.
             return size() - i;
         }
         return -1;
