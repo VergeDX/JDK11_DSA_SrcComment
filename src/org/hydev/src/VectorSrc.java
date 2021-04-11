@@ -34,6 +34,9 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 /**
+ * // [V] Vector = growable array. It has two arguments to control capacity. <p>
+ * // "capacity" >= size, it also > size; "capacityIncrement" controls the size of each grow.
+ * <p>
  * The {@code Vector} class implements a growable array of
  * objects. Like an array, it contains components that can be
  * accessed using an integer index. However, the size of a
@@ -48,18 +51,32 @@ import java.util.function.UnaryOperator;
  * {@code capacityIncrement}. An application can increase the
  * capacity of a vector before inserting a large number of
  * components; this reduces the amount of incremental reallocation.
- *
+ * <p>
+ * // [V] #iterator() & #listIterator(int) methods can return a iterator.
+ * After created iterator, if we put element without using ListIterator#remove() or ListIterator#add(Object),
+ * the iterator will throw a {@link ConcurrentModificationException}.
  * <p id="fail-fast">
+ * // [?] What means of "structurally modified"...? <p>
  * The iterators returned by this class's {@link #iterator() iterator} and
  * {@link #listIterator(int) listIterator} methods are <em>fail-fast</em>:
  * if the vector is structurally modified at any time after the iterator is
  * created, in any way except through the iterator's own
  * {@link ListIterator#remove() remove} or
  * {@link ListIterator#add(Object) add} methods, the iterator will throw a
- * {@link ConcurrentModificationException}.  Thus, in the face of
+ * {@link ConcurrentModificationException}.
+ * <p>
+ * // [V] Concurrent modify will raise an exception, this is better than undefined behavior in the feature. <p>
+ * // But this behavior is not hard guaranteed, it on a best-effort basis. Do not dependencies on this behavior.
+ * <p>
+ * Thus, in the face of
  * concurrent modification, the iterator fails quickly and cleanly, rather
  * than risking arbitrary, non-deterministic behavior at an undetermined
- * time in the future.  The {@link Enumeration Enumerations} returned by
+ * time in the future.
+ * <p>
+ * // [V] Enumeration is old version of Iterator, it is not fail fast,
+ * see https://stackoverflow.com/questions/948194/difference-between-java-enumeration-and-iterator for more details.
+ * <p>
+ * The {@link Enumeration Enumerations} returned by
  * the {@link #elements() elements} method are <em>not</em> fail-fast; if the
  * Vector is structurally modified at any time after the enumeration is
  * created then the results of enumerating are undefined.
@@ -71,7 +88,9 @@ import java.util.function.UnaryOperator;
  * Therefore, it would be wrong to write a program that depended on this
  * exception for its correctness:  <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
- *
+ * <p>
+ * // [V] Since Java 1.2, Vector implement the interface List, become a member of Java Collections Framework.
+ * more detail: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/doc-files/coll-overview.html.
  * <p>As of the Java 2 platform v1.2, this class was retrofitted to
  * implement the {@link List} interface, making it a member of the
  * <a href="{@docRoot}/java.base/java/util/package-summary.html#CollectionsFramework">
@@ -99,6 +118,7 @@ public class VectorSrc<E>
      *
      * @serial
      */
+    // [V] elementData[size():] are null.
     protected Object[] elementData;
 
     /**
@@ -108,6 +128,7 @@ public class VectorSrc<E>
      *
      * @serial
      */
+    // [V] elementData[:elementData - 1] are stored items.
     protected int elementCount;
 
     /**
@@ -118,6 +139,8 @@ public class VectorSrc<E>
      *
      * @serial
      */
+    // [V] When Vector is full, it will increase capacity by adding capacityIncrement,
+    // if "capacityIncrement" <= 0, the capacity will increased by double each grow.
     protected int capacityIncrement;
 
     /**
@@ -153,6 +176,7 @@ public class VectorSrc<E>
      *                                  is negative
      */
     public VectorSrc(int initialCapacity) {
+        // [V] The "capacityIncrement" default value is 0, this means it will double the capacity in each grow.
         this(initialCapacity, 0);
     }
 
@@ -162,6 +186,7 @@ public class VectorSrc<E>
      * zero.
      */
     public VectorSrc() {
+        // Empty Vector has default capacity 10.
         this(10);
     }
 
@@ -176,10 +201,13 @@ public class VectorSrc<E>
      * @since 1.2
      */
     public VectorSrc(Collection<? extends E> c) {
+        // [V] Copy first, then calculate length, avoid collection modify issue after copy.
         elementData = c.toArray();
         elementCount = elementData.length;
         // defend against c.toArray (incorrectly) not returning Object[]
         // (see e.g. https://bugs.openjdk.java.net/browse/JDK-6260652)
+        // [V] This because Collection#toArray method defined that should return a Object array.
+        // Related SO question: https://stackoverflow.com/questions/51372788/array-cast-java-8-vs-java-9
         if (elementData.getClass() != Object[].class)
             elementData = Arrays.copyOf(elementData, elementCount, Object[].class);
     }
@@ -197,6 +225,7 @@ public class VectorSrc<E>
      *                                   a runtime type that can be stored in the specified array
      * @see #toArray(Object[])
      */
+    // [V] Copy [k] index element to anArray[k].
     public synchronized void copyInto(Object[] anArray) {
         System.arraycopy(elementData, 0, anArray, 0, elementCount);
     }
@@ -210,6 +239,8 @@ public class VectorSrc<E>
      * minimize the storage of a vector.
      */
     public synchronized void trimToSize() {
+        // [V] The fail-fast behavior comes from "modCount", @see AbstractList#modCount.
+        // But if we needn't to trim, the "modCount" still =+ 1... It may help to discover bug earlier.
         modCount++;
         int oldCapacity = elementData.length;
         if (elementCount < oldCapacity) {
@@ -234,6 +265,11 @@ public class VectorSrc<E>
      *
      * @param minCapacity the desired minimum capacity
      */
+    // [V] Summary:
+    // 1. If no need to grow capacity, do nothing.
+    // 2. If we nned to grow, let capacity += capacityIncrement or *= 2.
+    // 3. But if still not enough, use minCapacity as capacity.
+    // Vector max size = Integer.MAX_VALUE - 8, but Integer.MAX_VALUE are also allowed. (hugeCapacity(int))
     public synchronized void ensureCapacity(int minCapacity) {
         if (minCapacity > 0) {
             modCount++;
@@ -277,18 +313,26 @@ public class VectorSrc<E>
     private int newCapacity(int minCapacity) {
         // overflow-conscious code
         int oldCapacity = elementData.length;
+
+        // [V] "newCapacity" will grow "capacityIncrement" if it exist, else double the "oldCapacity".
         int newCapacity = oldCapacity + ((capacityIncrement > 0) ?
                 capacityIncrement : oldCapacity);
+
+        // [V] "minCapacity" should be > 0, else it will raise OOM in hugeCapacity(int).
         if (newCapacity - minCapacity <= 0) {
             if (minCapacity < 0) // overflow
                 throw new OutOfMemoryError();
             return minCapacity;
         }
+
+        // [V] After += "capacityIncrement" or *= 2, newCapacity may still not enough.
+        // If that occurred, using the "minCapacity" as "newCapacity".
         return (newCapacity - MAX_ARRAY_SIZE <= 0)
                 ? newCapacity
                 : hugeCapacity(minCapacity);
     }
 
+    // [V] Common Vector max size is Integer.MAX_VALUE - 8, but it allow use Integer.MAX_VALUE as size.
     private static int hugeCapacity(int minCapacity) {
         if (minCapacity < 0) // overflow
             throw new OutOfMemoryError();
@@ -310,6 +354,9 @@ public class VectorSrc<E>
         modCount++;
         if (newSize > elementData.length)
             grow(newSize);
+
+        // [V] Clean the element out of border.
+        // [?] Why it makes a copy reference...? This is a synchronized method...
         final Object[] es = elementData;
         for (int to = elementCount, i = newSize; i < to; i++)
             es[i] = null;
@@ -323,6 +370,7 @@ public class VectorSrc<E>
      * data array, kept in the field {@code elementData}
      * of this vector)
      */
+    // [V] Capacity != size().
     public synchronized int capacity() {
         return elementData.length;
     }
@@ -358,6 +406,7 @@ public class VectorSrc<E>
      * @return an enumeration of the components of this vector
      * @see Iterator
      */
+    // [V] View only iterator, behavior is not defined when concurrent access.
     public Enumeration<E> elements() {
         return new Enumeration<E>() {
             int count = 0;
