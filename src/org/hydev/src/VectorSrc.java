@@ -406,7 +406,7 @@ public class VectorSrc<E>
      * @return an enumeration of the components of this vector
      * @see Iterator
      */
-    // [V] View only iterator, behavior is not defined when concurrent access.
+    // [V] Enumeration ~= View only iterator, behavior is not defined when concurrent access.
     public Enumeration<E> elements() {
         return new Enumeration<E>() {
             int count = 0;
@@ -435,6 +435,9 @@ public class VectorSrc<E>
      * @param o element whose presence in this vector is to be tested
      * @return {@code true} if this vector contains the specified element
      */
+    // [V] This design is educational: (Decouple)
+    // Method contains(Object) can also -> indexOf(Object) -> indexOf(Object, int).
+    // But contains(Object) & indexOf(Object) -> indexOf(Object, int).
     public boolean contains(Object o) {
         return indexOf(o, 0) >= 0;
     }
@@ -450,6 +453,7 @@ public class VectorSrc<E>
      * @return the index of the first occurrence of the specified element in
      * this vector, or -1 if this vector does not contain the element
      */
+    // [V] firstIndexOf(Object), in precisely.
     public int indexOf(Object o) {
         return indexOf(o, 0);
     }
