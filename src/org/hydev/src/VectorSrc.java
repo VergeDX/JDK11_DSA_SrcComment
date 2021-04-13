@@ -454,6 +454,7 @@ public class VectorSrc<E>
      * this vector, or -1 if this vector does not contain the element
      */
     // [V] firstIndexOf(Object), in precisely.
+    // https://stackoverflow.com/questions/67060043/why-listindexof-return-1-when-no-element-matching
     public int indexOf(Object o) {
         return indexOf(o, 0);
     }
@@ -474,6 +475,7 @@ public class VectorSrc<E>
      * @throws IndexOutOfBoundsException if the specified index is negative
      * @see Object#equals(Object)
      */
+    // [V] Searching range is [index:].
     public synchronized int indexOf(Object o, int index) {
         if (o == null) {
             for (int i = index; i < elementCount; i++)
@@ -519,6 +521,7 @@ public class VectorSrc<E>
      *                                   than or equal to the current size of this vector
      */
     public synchronized int lastIndexOf(Object o, int index) {
+        // [?] For negative index, indexOf throw an exception, lastIndexOf return -1...
         if (index >= elementCount)
             throw new IndexOutOfBoundsException(index + " >= " + elementCount);
 
@@ -546,6 +549,7 @@ public class VectorSrc<E>
      *                                        ({@code index < 0 || index >= size()})
      */
     public synchronized E elementAt(int index) {
+        // [?] Why judgement manually here...? Costs of array[bigIndex] is high...?
         if (index >= elementCount) {
             throw new ArrayIndexOutOfBoundsException(index + " >= " + elementCount);
         }
@@ -635,6 +639,8 @@ public class VectorSrc<E>
         } else if (index < 0) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
+
+        // [V] Move all elements after "index" move forward 1 step, j = copy element count.
         int j = elementCount - index - 1;
         if (j > 0) {
             System.arraycopy(elementData, index + 1, elementData, index, j);
@@ -675,8 +681,12 @@ public class VectorSrc<E>
         modCount++;
         final int s = elementCount;
         Object[] elementData = this.elementData;
+
+        // [V] Make sure the array has 1 empty space to contains insert element.
         if (s == elementData.length)
             elementData = grow();
+
+        // [V] Move to make empty room, and put the element into.
         System.arraycopy(elementData, index,
                 elementData, index + 1,
                 s - index);
@@ -717,6 +727,8 @@ public class VectorSrc<E>
      */
     public synchronized boolean removeElement(Object obj) {
         modCount++;
+
+        // [V] Find the index, and remove the index.
         int i = indexOf(obj);
         if (i >= 0) {
             removeElementAt(i);
@@ -732,6 +744,7 @@ public class VectorSrc<E>
      * method (which is part of the {@link List} interface).
      */
     public synchronized void removeAllElements() {
+        // [V] Fill each element to null instead of allocate a new array.
         final Object[] es = elementData;
         for (int to = elementCount, i = elementCount = 0; i < to; i++)
             es[i] = null;
@@ -749,6 +762,8 @@ public class VectorSrc<E>
         try {
             @SuppressWarnings("unchecked")
             VectorSrc<E> v = (VectorSrc<E>) super.clone();
+
+            // Just copy a same reference, not call eachElement.clone().
             v.elementData = Arrays.copyOf(elementData, elementCount);
             v.modCount = 0;
             return v;
@@ -860,7 +875,10 @@ public class VectorSrc<E>
      * bytecode size under 35 (the -XX:MaxInlineSize default value),
      * which helps when add(E) is called in a C1-compiled loop.
      */
+    // [V] -XX:MaxInlineSize=35, "Maximum bytecode size of a method to be inlined."
+    // https://www.oracle.com/java/technologies/javase/vmoptions-jsp.html
     private void add(E e, Object[] elementData, int s) {
+        // [V] Add given element to last of Vector.
         if (s == elementData.length)
             elementData = grow();
         elementData[s] = e;
