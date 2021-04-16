@@ -809,6 +809,9 @@ public class VectorSrc<E>
      * @throws NullPointerException if the given array is null
      * @since 1.2
      */
+    // [V] Copy vector elements to a[].
+    // If a.size > vector.size, it will copy and set a[vector.size + 1] to null.
+    // Else, allocate a new array and return it, array a provide runtime class & maybe as a container.
     @SuppressWarnings("unchecked")
     public synchronized <T> T[] toArray(T[] a) {
         if (a.length < elementCount)
@@ -844,6 +847,7 @@ public class VectorSrc<E>
      * @since 1.2
      */
     public synchronized E get(int index) {
+        // [?] Why do judgement manually...? Previous version of Java cannot void this issues...?
         if (index >= elementCount)
             throw new ArrayIndexOutOfBoundsException(index);
 
@@ -865,6 +869,7 @@ public class VectorSrc<E>
         if (index >= elementCount)
             throw new ArrayIndexOutOfBoundsException(index);
 
+        // [V] This method do not adds the "modCount", because it doesn't changed the "elementCount".
         E oldValue = elementData(index);
         elementData[index] = element;
         return oldValue;
