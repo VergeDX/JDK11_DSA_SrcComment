@@ -950,6 +950,7 @@ public class VectorSrc<E>
             throw new ArrayIndexOutOfBoundsException(index);
         E oldValue = elementData(index);
 
+        // [V] lastIndex = (elementCount - 1), lastIndex - index = element count between them.
         int numMoved = elementCount - index - 1;
         if (numMoved > 0)
             System.arraycopy(elementData, index + 1, elementData, index,
@@ -982,6 +983,8 @@ public class VectorSrc<E>
      * @throws NullPointerException if the specified collection is null
      */
     public synchronized boolean containsAll(Collection<?> c) {
+        // Method containsAll implements by the super class - AbstractCollection.
+        // It call each element#equals method to check.
         return super.containsAll(c);
     }
 
