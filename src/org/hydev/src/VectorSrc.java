@@ -128,7 +128,7 @@ public class VectorSrc<E>
      *
      * @serial
      */
-    // [V] elementData[:elementData - 1] are stored items.
+    // [V] elementData[:elementCount - 1] are stored items.
     protected int elementCount;
 
     /**
