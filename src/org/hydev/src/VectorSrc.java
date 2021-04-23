@@ -1001,18 +1001,26 @@ public class VectorSrc<E>
      * @throws NullPointerException if the specified collection is null
      * @since 1.2
      */
+    // [V] UB If c modified while this method invoke.
+    // This means if we do this.addAll(this), UB will happened.
     public boolean addAll(Collection<? extends E> c) {
         Object[] a = c.toArray();
         modCount++;
+
         int numNew = a.length;
         if (numNew == 0)
             return false;
         synchronized (this) {
             Object[] elementData = this.elementData;
             final int s = elementCount;
+
+            // Count we want put > vacancy (eD.size - count of took), grow it.
             if (numNew > elementData.length - s)
                 elementData = grow(s + numNew);
+
+            // [V] Copy from the lastIndex + 1, which is elementCount.
             System.arraycopy(a, 0, elementData, s, numNew);
+
             elementCount = s + numNew;
             return true;
         }
@@ -1089,12 +1097,15 @@ public class VectorSrc<E>
 
     private synchronized boolean bulkRemove(Predicate<? super E> filter) {
         int expectedModCount = modCount;
+
         final Object[] es = elementData;
         final int end = elementCount;
+
         int i;
         // Optimize for initial run of survivors
         for (i = 0; i < end && !filter.test(elementAt(es, i)); i++)
             ;
+
         // Tolerate predicates that reentrantly access the collection for
         // read (but writers still get CME), so traverse once to find
         // elements to delete, a second pass to physically expunge.
